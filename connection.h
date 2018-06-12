@@ -1,11 +1,15 @@
 #ifndef CONNECTION_H
 #define CONNECTION_H
+#include <QString>
+#include <QTcpSocket>
 
-
-class CONNECTION
+class Connection
 {
 public:
-    CONNECTION();
+    Connection(QString username_, QTcpSocket* socket);
+private:
+    QString username_;
+    QTcpSocket* openedSocket_;
 };
 
 #endif // CONNECTION_H

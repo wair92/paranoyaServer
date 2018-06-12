@@ -18,8 +18,10 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         main.cpp \
     server.cpp \
-    serverapplication.cpp
+    serverapplication.cpp \
+    connection.cpp
 
 HEADERS += \
     server.h \
-    serverapplication.h
+    serverapplication.h \
+    connection.h
