@@ -19,6 +19,7 @@ private:
     void processMessage( QJsonObject object );
     bool isLogin(const QJsonObject& obj) const;
     bool isMessage(const QJsonObject& obj) const;
+    QTcpSocket *findReceiver(const QString& receiver);
 
     std::unique_ptr<QTcpServer> server_;
     QHostAddress address_;

@@ -81,6 +81,13 @@ void Server::processMessage(QJsonObject object)
     auto receiver = object.value(QString("Receiver")).toString();
     auto sender = object.value(QString("Sender")).toString();
     qDebug() << "Sender: " << sender << "Receiver: " << receiver << "Message: " << message;
+    QTcpSocket* foundReceiver = findReceiver(receiver);
+    if(foundReceiver)
+    {
+        QJsonDocument doc( object );
+        auto dataToSend = doc.toJson(QJsonDocument::Compact);
+        foundReceiver->write(dataToSend);
+    }
 
 }
 
@@ -100,4 +107,14 @@ bool Server::isMessage( const QJsonObject& obj ) const
         return true;
     else
         return false;
+}
+
+QTcpSocket *Server::findReceiver(const QString &receiver)
+{
+    for (const Connection& i : connections_){
+            if(i.getName() == receiver)
+                return i.getSocket();
+    }
+    qDebug() << "Client" << receiver << "doesnt exist";
+    return nullptr;
 }
