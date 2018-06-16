@@ -5,6 +5,7 @@
 #include <QTcpSocket>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QDateTime>
 #include "server.h"
 #include "connection.h"
 
@@ -30,9 +31,6 @@ Server::Server()
         });
 
     });
-
-
-
 }
 
 Server::~Server()
@@ -65,6 +63,12 @@ void Server::process(QByteArray data, QTcpSocket* readSocket)
     if(isMessage(object)){
         processMessage(object);
     }
+    if(isLogout(object)){
+        processLogout(object, readSocket);
+    }
+    if(isHeartBeat(object)){
+        processHeartBeat(object);
+    }
 }
 
 void Server::processLogin(QJsonObject object, QTcpSocket* readSocket)
@@ -91,6 +95,27 @@ void Server::processMessage(QJsonObject object)
 
 }
 
+void Server::processLogout(QJsonObject object, QTcpSocket *readSocket)
+{
+    auto user = object.value(QString("Logout")).toString();
+    qDebug() << "Logging out: " << user;
+    int index = 0;
+    for(int i = 0; i< connections_.size(); i++){
+        if(connections_[i].getName() == user){
+            index = i;
+            connections_.erase( connections_.begin() + index);
+            break;
+        }
+    }
+
+}
+
+void Server::processHeartBeat(QJsonObject object)
+{
+    auto user = object.value(QString("HeartBeat")).toString();
+    qDebug() << QDateTime::currentDateTime() << "user: " << user << "is alive";
+}
+
 bool Server::isLogin( const QJsonObject& obj ) const
 {
     auto login = obj.value(QString("Id"));
@@ -104,6 +129,24 @@ bool Server::isMessage( const QJsonObject& obj ) const
 {
     auto message = obj.value(QString("Id"));
     if(message.toString() == "Message")
+        return true;
+    else
+        return false;
+}
+
+bool Server::isLogout(const QJsonObject &obj) const
+{
+    auto login = obj.value(QString("Id"));
+    if(login.toString() == "Logout")
+        return true;
+    else
+        return false;
+}
+
+bool Server::isHeartBeat(const QJsonObject &obj) const
+{
+    auto login = obj.value(QString("Id"));
+    if(login.toString() == "HeartBeat")
         return true;
     else
         return false;
