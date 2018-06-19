@@ -25,6 +25,9 @@ private:
     bool isLogout(const QJsonObject& obj) const;
     bool isHeartBeat(const QJsonObject& obj) const;
 
+    void sendMessageToReceiver(const QString& receiver, QJsonObject object);
+    void sendLoginConfirm(const QString& user);
+
     QTcpSocket *findReceiver(const QString& receiver);
 
     std::unique_ptr<QTcpServer> server_;

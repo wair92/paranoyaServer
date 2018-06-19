@@ -8,7 +8,7 @@ ServerApplication::ServerApplication(int& argc, char** argv)
 {
     QHostAddress ip;
     ip.setAddress("127.0.0.1");
-    server_.setServer(ip,9008);
+    server_.setServer(ip,9006);
     server_.listen();
 }
 

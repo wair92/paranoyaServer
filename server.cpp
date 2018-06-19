@@ -21,8 +21,6 @@ Server::Server()
             QTcpSocket* readSocket = qobject_cast<QTcpSocket*>(sender());
             auto data = readSocket->readAll();
             process(data, readSocket);
-            QString getIt = "GotIt";
-            readSocket->write(getIt.toLatin1(), getIt.length());
         } );
 
         connect( connectedClient_, &QTcpSocket::disconnected, this, [this](){
@@ -77,6 +75,7 @@ void Server::processLogin(QJsonObject object, QTcpSocket* readSocket)
     qDebug() << user << "was succesfully logged in";
     Connection connection(user, readSocket);
     connections_.push_back(connection);
+    sendLoginConfirm( user );
 }
 
 void Server::processMessage(QJsonObject object)
@@ -85,14 +84,7 @@ void Server::processMessage(QJsonObject object)
     auto receiver = object.value(QString("Receiver")).toString();
     auto sender = object.value(QString("Sender")).toString();
     qDebug() << "Sender: " << sender << "Receiver: " << receiver << "Message: " << message;
-    QTcpSocket* foundReceiver = findReceiver(receiver);
-    if(foundReceiver)
-    {
-        QJsonDocument doc( object );
-        auto dataToSend = doc.toJson(QJsonDocument::Compact);
-        foundReceiver->write(dataToSend);
-    }
-
+    sendMessageToReceiver(receiver, object);
 }
 
 void Server::processLogout(QJsonObject object, QTcpSocket *readSocket)
@@ -150,6 +142,32 @@ bool Server::isHeartBeat(const QJsonObject &obj) const
         return true;
     else
         return false;
+}
+
+void Server::sendMessageToReceiver(const QString &receiver, QJsonObject object)
+{
+    QTcpSocket* foundReceiver = findReceiver(receiver);
+    if(foundReceiver)
+    {
+        QJsonDocument doc( object );
+        auto dataToSend = doc.toJson(QJsonDocument::Compact);
+        foundReceiver->write(dataToSend);
+    }
+}
+
+void Server::sendLoginConfirm(const QString& receiver)
+{
+    QTcpSocket* foundReceiver = findReceiver(receiver);
+    if(foundReceiver)
+    {
+        QJsonObject confirmObject;
+        confirmObject.insert("Id", QJsonValue::fromVariant("LoginConfirm"));
+        confirmObject.insert("Username", QJsonValue::fromVariant( receiver ));
+
+        QJsonDocument doc( confirmObject );
+        auto dataToSend = doc.toJson(QJsonDocument::Compact);
+        foundReceiver->write(dataToSend);
+    }
 }
 
 QTcpSocket *Server::findReceiver(const QString &receiver)
