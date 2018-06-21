@@ -6,6 +6,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QDateTime>
+#include <QTimer>
 #include "server.h"
 #include "connection.h"
 
@@ -28,6 +29,13 @@ Server::Server()
             qDebug() << "Clients:"<< numbeOfClients_;
         });
 
+    });
+
+    inactiveClientChecker_.setSingleShot(false);
+    inactiveClientChecker_.setInterval(3000);
+    inactiveClientChecker_.start();
+    connect(&inactiveClientChecker_, &QTimer::timeout, this, [this](){
+        removeInactiveClients();
     });
 }
 
@@ -106,6 +114,12 @@ void Server::processHeartBeat(QJsonObject object)
 {
     auto user = object.value(QString("HeartBeat")).toString();
     qDebug() << QDateTime::currentDateTime() << "user: " << user << "is alive";
+
+    for(auto it = connections_.begin(); it != connections_.end(); it++ ){
+        if(it->getName() == user){
+            it->setActive();
+        }
+    }
 }
 
 bool Server::isLogin( const QJsonObject& obj ) const
@@ -178,4 +192,36 @@ QTcpSocket *Server::findReceiver(const QString &receiver)
     }
     qDebug() << "Client" << receiver << "doesnt exist";
     return nullptr;
+}
+
+void Server::removeInactiveClients()
+{
+    /*qDebug() << "removing inactive clients";
+    for(auto it = connections_.begin(); it != connections_.end(); it++ ){
+        if(it->markedForRemoving() == true){
+            //try to close socket if possible
+            it->getSocket()->close();
+            //delete from container
+            qDebug() << "Deleting: " << it->getName();
+            connections_.erase(it);
+        }
+        else{
+            qDebug() << it->getName() << "marked as possibly inactive";
+            it->markAsPossiblyInactive();
+        }
+    }*/
+    connections_.erase(std::remove_if(connections_.begin(), connections_.end(),
+                           [this](Connection& i) {
+                           if(i.markedForRemoving() == true){
+                               qDebug() << "Deleting: " << i.getName();
+                                i.getSocket()->close();
+                                return true;
+                           }
+                           else{
+                               i.markAsPossiblyInactive();
+                               return false;
+                           }
+
+                       }), connections_.end());
+
 }

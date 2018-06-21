@@ -3,6 +3,7 @@
 #include <memory>
 #include <QTcpServer>
 #include <QObject>
+#include <QTimer>
 #include "connection.h"
 
 class Server: public QObject
@@ -29,6 +30,7 @@ private:
     void sendLoginConfirm(const QString& user);
 
     QTcpSocket *findReceiver(const QString& receiver);
+    void removeInactiveClients();
 
     std::unique_ptr<QTcpServer> server_;
     QHostAddress address_;
@@ -36,6 +38,7 @@ private:
     QTcpSocket* connectedClient_ = {nullptr};
     int numbeOfClients_ = {0};
     std::vector<Connection> connections_;
+    QTimer inactiveClientChecker_;
 };
 
 #endif // SERVER_H
