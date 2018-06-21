@@ -13,30 +13,8 @@
 Server::Server()
     :server_( std::make_unique<QTcpServer>() )
 {
-    connect( server_.get(), &QTcpServer::newConnection, this, [this](){
-        connectedClient_ = server_->nextPendingConnection();
-        numbeOfClients_++;
-        qDebug() << "Clients:"<< numbeOfClients_;
-
-        connect( connectedClient_, &QTcpSocket::readyRead, this, [this](){
-            QTcpSocket* readSocket = qobject_cast<QTcpSocket*>(sender());
-            auto data = readSocket->readAll();
-            process(data, readSocket);
-        } );
-
-        connect( connectedClient_, &QTcpSocket::disconnected, this, [this](){
-            numbeOfClients_--;
-            qDebug() << "Clients:"<< numbeOfClients_;
-        });
-
-    });
-
-    inactiveClientChecker_.setSingleShot(false);
-    inactiveClientChecker_.setInterval(3000);
-    inactiveClientChecker_.start();
-    connect(&inactiveClientChecker_, &QTimer::timeout, this, [this](){
-        removeInactiveClients();
-    });
+    connectNewConnection();
+    setInactiveClientTimer();
 }
 
 Server::~Server()
@@ -70,7 +48,7 @@ void Server::process(QByteArray data, QTcpSocket* readSocket)
         processMessage(object);
     }
     if(isLogout(object)){
-        processLogout(object, readSocket);
+        processLogout(object);
     }
     if(isHeartBeat(object)){
         processHeartBeat(object);
@@ -95,7 +73,7 @@ void Server::processMessage(QJsonObject object)
     sendMessageToReceiver(receiver, object);
 }
 
-void Server::processLogout(QJsonObject object, QTcpSocket *readSocket)
+void Server::processLogout(QJsonObject object)
 {
     auto user = object.value(QString("Logout")).toString();
     qDebug() << "Logging out: " << user;
@@ -184,6 +162,45 @@ void Server::sendLoginConfirm(const QString& receiver)
     }
 }
 
+void Server::setInactiveClientTimer()
+{
+    inactiveClientChecker_.setSingleShot(false);
+    inactiveClientChecker_.setInterval(3000);
+    inactiveClientChecker_.start();
+    connect(&inactiveClientChecker_, &QTimer::timeout, this, [this](){
+        removeInactiveClients();
+    });
+}
+
+void Server::connectNewConnection()
+{
+    connect( server_.get(), &QTcpServer::newConnection, this, [this](){
+        connectedClient_ = server_->nextPendingConnection();
+        numbeOfClients_++;
+        qDebug() << "Clients:"<< numbeOfClients_;
+        connectNewData();
+        connectDisconection();
+
+    });
+}
+
+void Server::connectNewData()
+{
+    connect( connectedClient_, &QTcpSocket::readyRead, this, [this](){
+        QTcpSocket* readSocket = qobject_cast<QTcpSocket*>(sender());
+        auto data = readSocket->readAll();
+        process(data, readSocket);
+    } );
+}
+
+void Server::connectDisconection()
+{
+    connect( connectedClient_, &QTcpSocket::disconnected, this, [this](){
+        numbeOfClients_--;
+        qDebug() << "Clients:"<< numbeOfClients_;
+    });
+}
+
 QTcpSocket *Server::findReceiver(const QString &receiver)
 {
     for (const Connection& i : connections_){
@@ -196,22 +213,8 @@ QTcpSocket *Server::findReceiver(const QString &receiver)
 
 void Server::removeInactiveClients()
 {
-    /*qDebug() << "removing inactive clients";
-    for(auto it = connections_.begin(); it != connections_.end(); it++ ){
-        if(it->markedForRemoving() == true){
-            //try to close socket if possible
-            it->getSocket()->close();
-            //delete from container
-            qDebug() << "Deleting: " << it->getName();
-            connections_.erase(it);
-        }
-        else{
-            qDebug() << it->getName() << "marked as possibly inactive";
-            it->markAsPossiblyInactive();
-        }
-    }*/
-    connections_.erase(std::remove_if(connections_.begin(), connections_.end(),
-                           [this](Connection& i) {
+    connections_.erase(
+                std::remove_if(connections_.begin(), connections_.end(), [](Connection& i) {
                            if(i.markedForRemoving() == true){
                                qDebug() << "Deleting: " << i.getName();
                                 i.getSocket()->close();
@@ -223,5 +226,4 @@ void Server::removeInactiveClients()
                            }
 
                        }), connections_.end());
-
 }

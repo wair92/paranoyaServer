@@ -18,7 +18,7 @@ private:
     void process( QByteArray data, QTcpSocket* readSocket );
     void processLogin( QJsonObject object, QTcpSocket* readSocket );
     void processMessage( QJsonObject object );
-    void processLogout(QJsonObject object, QTcpSocket* readSocket );
+    void processLogout(QJsonObject object );
     void processHeartBeat(QJsonObject object);
 
     bool isLogin(const QJsonObject& obj) const;
@@ -28,6 +28,11 @@ private:
 
     void sendMessageToReceiver(const QString& receiver, QJsonObject object);
     void sendLoginConfirm(const QString& user);
+
+    void setInactiveClientTimer();
+    void connectNewConnection();
+    void connectNewData();
+    void connectDisconection();
 
     QTcpSocket *findReceiver(const QString& receiver);
     void removeInactiveClients();
