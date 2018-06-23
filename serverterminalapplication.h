@@ -4,11 +4,11 @@
 #include <QCoreApplication>
 #include "server.h"
 
-class ServerApplication
+class ServerTerminalApplication
 {
 public:
-    ServerApplication(int& argc, char** argv);
-    virtual ~ServerApplication();
+    ServerTerminalApplication(int& argc, char** argv);
+    virtual ~ServerTerminalApplication();
     int run();
 private:
     QCoreApplication app_;

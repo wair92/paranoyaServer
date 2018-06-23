@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QTimer>
 #include "connection.h"
+#include "configloader.h"
 
 class Server: public QObject
 {
@@ -12,9 +13,10 @@ class Server: public QObject
 public:
     Server();
     virtual ~Server();
-    void setServer(QHostAddress address, quint16 port);
     void listen();
+
 private:
+    void setServer(QHostAddress address, quint16 port);
     void process( QByteArray data, QTcpSocket* readSocket );
     void processLogin( QJsonObject object, QTcpSocket* readSocket );
     void processMessage( QJsonObject object );
@@ -28,6 +30,7 @@ private:
 
     void sendMessageToReceiver(const QString& receiver, QJsonObject object);
     void sendLoginConfirm(const QString& user);
+    void sendHeartBeatBack(const QString& user);
 
     void setInactiveClientTimer();
     void connectNewConnection();
@@ -37,6 +40,7 @@ private:
     QTcpSocket *findReceiver(const QString& receiver);
     void removeInactiveClients();
 
+    ConfigLoader config_;
     std::unique_ptr<QTcpServer> server_;
     QHostAddress address_;
     quint16 port_;

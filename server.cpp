@@ -11,8 +11,12 @@
 #include "connection.h"
 
 Server::Server()
-    :server_( std::make_unique<QTcpServer>() )
+    :server_( std::make_unique<QTcpServer>() ),
+    config_( "config.json" )
 {
+    QHostAddress ip;
+    ip.setAddress(config_.getIp());
+    setServer(ip, config_.getPort());
     connectNewConnection();
     setInactiveClientTimer();
 }
@@ -98,6 +102,7 @@ void Server::processHeartBeat(QJsonObject object)
             it->setActive();
         }
     }
+    sendHeartBeatBack(user);
 }
 
 bool Server::isLogin( const QJsonObject& obj ) const
@@ -155,6 +160,21 @@ void Server::sendLoginConfirm(const QString& receiver)
         QJsonObject confirmObject;
         confirmObject.insert("Id", QJsonValue::fromVariant("LoginConfirm"));
         confirmObject.insert("Username", QJsonValue::fromVariant( receiver ));
+        confirmObject.insert("HeartBeatTimer", QJsonValue::fromVariant( config_.getHearbeatTime() ));
+
+        QJsonDocument doc( confirmObject );
+        auto dataToSend = doc.toJson(QJsonDocument::Compact);
+        foundReceiver->write(dataToSend);
+    }
+}
+
+void Server::sendHeartBeatBack(const QString &user)
+{
+    QTcpSocket* foundReceiver = findReceiver(user);
+    if(foundReceiver){
+        QJsonObject confirmObject;
+        confirmObject.insert("Id", QJsonValue::fromVariant("HeartBeatBack"));
+        confirmObject.insert("Username", QJsonValue::fromVariant( user ));
 
         QJsonDocument doc( confirmObject );
         auto dataToSend = doc.toJson(QJsonDocument::Compact);
@@ -165,7 +185,7 @@ void Server::sendLoginConfirm(const QString& receiver)
 void Server::setInactiveClientTimer()
 {
     inactiveClientChecker_.setSingleShot(false);
-    inactiveClientChecker_.setInterval(3000);
+    inactiveClientChecker_.setInterval(config_.getHearbeatTime() * 2);
     inactiveClientChecker_.start();
     connect(&inactiveClientChecker_, &QTimer::timeout, this, [this](){
         removeInactiveClients();

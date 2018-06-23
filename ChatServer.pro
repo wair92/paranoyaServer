@@ -18,10 +18,16 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         main.cpp \
     server.cpp \
-    serverapplication.cpp \
-    connection.cpp
+    connection.cpp \
+    configloader.cpp \
+    serverterminalapplication.cpp
 
 HEADERS += \
     server.h \
-    serverapplication.h \
-    connection.h
+    connection.h \
+    configloader.h \
+    serverterminalapplication.h
+
+DISTFILES += \
+    README.MD \
+    config.json
