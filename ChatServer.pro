@@ -20,14 +20,30 @@ SOURCES += \
     server.cpp \
     connection.cpp \
     configloader.cpp \
+    serverterminalapplication.cpp \
+    configloader.cpp \
+    connection.cpp \
+    main.cpp \
+    server.cpp \
     serverterminalapplication.cpp
 
 HEADERS += \
     server.h \
     connection.h \
     configloader.h \
+    serverterminalapplication.h \
+    configloader.h \
+    connection.h \
+    server.h \
     serverterminalapplication.h
 
 DISTFILES += \
     README.MD \
-    config.json
+    config.json \
+    pictures/server.png
+
+copydata.commands = $(COPY) $$PWD/config.json $$OUT_PWD
+first.depends = $(first) copydata
+export(first.depends)
+export(copydata.commands)
+QMAKE_EXTRA_TARGETS += first copydata
