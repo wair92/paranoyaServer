@@ -5,6 +5,7 @@
 #include <QTcpSocket>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QDateTime>
 #include <QTimer>
 #include "server.h"
@@ -57,6 +58,9 @@ void Server::process(QByteArray data, QTcpSocket* readSocket)
     if(isHeartBeat(object)){
         processHeartBeat(object);
     }
+    if(isUserListRequest(object)){
+        processUserListRequest(object);
+    }
 }
 
 void Server::processLogin(QJsonObject object, QTcpSocket* readSocket)
@@ -95,7 +99,7 @@ void Server::processLogout(QJsonObject object)
 void Server::processHeartBeat(QJsonObject object)
 {
     auto user = object.value(QString("HeartBeat")).toString();
-    qDebug() << QDateTime::currentDateTime() << "user: " << user << "is alive";
+    //qDebug() << QDateTime::currentDateTime() << "user: " << user << "is alive";
 
     for(auto it = connections_.begin(); it != connections_.end(); it++ ){
         if(it->getName() == user){
@@ -103,6 +107,12 @@ void Server::processHeartBeat(QJsonObject object)
         }
     }
     sendHeartBeatBack(user);
+}
+
+void Server::processUserListRequest(QJsonObject object)
+{
+    auto user = object.value(QString("Username")).toString();
+    sendUserList(user);
 }
 
 bool Server::isLogin( const QJsonObject& obj ) const
@@ -136,6 +146,15 @@ bool Server::isHeartBeat(const QJsonObject &obj) const
 {
     auto login = obj.value(QString("Id"));
     if(login.toString() == "HeartBeat")
+        return true;
+    else
+        return false;
+}
+
+bool Server::isUserListRequest(const QJsonObject &obj) const
+{
+    auto login = obj.value(QString("Id"));
+    if(login.toString() == "UserList")
         return true;
     else
         return false;
@@ -182,10 +201,32 @@ void Server::sendHeartBeatBack(const QString &user)
     }
 }
 
+void Server::sendUserList(const QString &user)
+{
+    QTcpSocket* foundReceiver = findReceiver(user);
+    if(foundReceiver){
+        QJsonObject message;
+        message.insert("Id", QJsonValue::fromVariant("UserListResponse"));
+        message.insert("Username", QJsonValue::fromVariant( user ));
+        QJsonArray users;
+        for( const Connection& i: connections_){
+            if(i.getName() != user ){
+                users.push_back( QJsonValue::fromVariant( i.getName() ));
+            }
+        }
+        message.insert("Users", users);
+
+        QJsonDocument doc( message );
+        auto dataToSend = doc.toJson(QJsonDocument::Compact);
+        foundReceiver->write(dataToSend);
+        qDebug() << "Sent userList to" << user;
+    }
+}
+
 void Server::setInactiveClientTimer()
 {
     inactiveClientChecker_.setSingleShot(false);
-    inactiveClientChecker_.setInterval(config_.getHearbeatTime() * 2);
+    inactiveClientChecker_.setInterval(config_.getHearbeatTime() * 2 + 2000);
     inactiveClientChecker_.start();
     connect(&inactiveClientChecker_, &QTimer::timeout, this, [this](){
         removeInactiveClients();
