@@ -1,7 +1,7 @@
 # Paranoya chat server
 
 ### Screenshots
-
+![Screen](https://github.com/wair92/paranoyaServer/blob/master/pictures/server.png?raw=true)
 
 ### Config
 Configuration is set in config.json, which must be loacated in the same directory as running binary of application. On the server side 3 variables cen be set:
