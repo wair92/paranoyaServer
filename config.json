@@ -1,5 +1,5 @@
 {
     "Ip": "127.0.0.1",
     "Port": 9000,
-    "HeartBeatTimer": 1000
+    "HeartBeatTimer": 5000
 }
